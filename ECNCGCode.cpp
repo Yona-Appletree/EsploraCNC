@@ -74,7 +74,7 @@ void syncMachineMotion() {
 	}
 }
 
-void setupJogControl() {
+void startJogControl() {
 	if (!jogControlEnabled) {
 		jogControlEnabled = true;
 		gotInitialPosition = false;

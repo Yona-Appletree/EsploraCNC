@@ -11,7 +11,7 @@
 
 bool readMachineActualPos(Vector3 *pos);
 
-void setupJogControl();
+void startJogControl();
 void loopJogControl();
 void stopJogControl();
 void setDesiredVelocity(Vector3 vel);

@@ -76,7 +76,7 @@ void setupNewPosPage() {
 
 	newPosPageState = NEW_POS_START;
 
-	setupJogControl();
+	startJogControl();
 }
 
 bool newPosPageError(const char* error) {
@@ -93,11 +93,9 @@ bool loopNewPagePosZProbe() {
 		result = machineZProbe(GCODE_NUM(1), GCODE_NUM(60));
 	}
 	if (result == 1) {
-		// Yay, ready for the real probe.
 		clearScreen();
-		drawCenteredText(0, "ZProbe", 2);
-		drawCenteredText(25, "Probing in 5...", 1);
-		delay(5000);
+		drawCenteredText(0, "Z Probe", 2);
+		drawCenteredText(30, "Probing...", 2);
 
 		// Actual Probe
 		if (!machineZProbe(GCODE_NUM(-100), GCODE_NUM(100)))
@@ -139,8 +137,8 @@ void loopNewPosPage() {
 					delay(1000);
 					newPosPageState = NEW_POS_ZPROBE;
 					clearScreen();
-					drawCenteredText(0, "ZProbe", 2);
-					drawCenteredText(25, "Tap Probe to Begin", 1);
+					drawCenteredText(0, "Z Probe", 2);
+					drawCenteredText(25, "Tap Probe, plz", 2);
 				} else {
 					newPosPageError("Homing Failed");
 				}
@@ -183,10 +181,10 @@ void loopLoadPosPage() {
 
 void setupFreeJogPage() {
 	ecncPage = ECNC_PAGE_FREE_JOG;
-	drawMenuStart(0);
-	drawMenuItem(0, "New Pos Page");
+	clearScreen();
+	drawCenteredText(0, "Free Jogging", 2);
 
-	setupJogControl();
+	startJogControl();
 }
 
 void loopFreeJogPage() {
