@@ -1,11 +1,13 @@
 #include <SPI.h>
 
-#include "ECNC.h"
+#include "HumanInterface.h"
 
 #include "PDQ_ST7735_config.h"
 #include <PDQ_GFX.h>
 #include <PDQ_ST7735.h>
 #include <Esplora.h>
+#include <EEPROM.h>
+#include "Persistence.h"
 
 PDQ_ST7735 tft;
 
@@ -21,6 +23,8 @@ void setup(void) {
 	setupLCD();
 	setupEsploraHelper();
 	setupEsploraCnc();
+
+	//clearAllSaved();
 }
 
 void loop() {
@@ -65,6 +69,28 @@ void drawCenteredText(
 	tft.setTextSize(size);
 	tft.setCursor((140 - strlen(text)*5*size)/2, y);
 	tft.print(text);
+}
+
+void updateText(
+	uint16_t y,
+	bool center,
+	uint8_t size,
+    const char* format,
+    ...
+) {
+	tft.setTextSize(size);
+	tft.fillRect(0, y, 160, charHeight, ST7735_BLACK);
+
+	char buf[20];
+
+
+	va_list(args);
+	va_start(args, format);
+	vsnprintf(buf, sizeof(buf), format, args);
+	va_end(args);
+
+	tft.setCursor(center ? (140 - strlen(buf)*5*size)/2 : 0, y);
+	tft.print(buf);
 }
 
 void drawMenuCursor(

@@ -2,7 +2,7 @@
 #define ECNC_H
 
 #include <Esplora.h>
-#include "ECNCGCode.h"
+#include "MachineControl.h"
 #include "Vector3.h"
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
@@ -13,7 +13,9 @@
 #define MAX_MACHINE_X 80000
 #define MAX_MACHINE_Y 80000
 
-#define TOUCH_PLATE_THICKNESS GCODE_NUM(1.6)
+#define Z_WORKING_HEIGHT_001MM GCODE_NUM(2)
+#define Z_MOVING_HEIGHT_001MM GCODE_NUM(10)
+#define TOUCH_PLATE_THICKNESS_001MM GCODE_NUM(1.6)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Main Program Loop
@@ -34,6 +36,13 @@ void drawCenteredText(
 	uint16_t y,
 	const char* text,
 	uint8_t size
+);
+void updateText(
+	uint16_t y,
+	bool center,
+	uint8_t size,
+	const char* format,
+	...
 );
 void drawMenuCursor(
 	uint8_t index
@@ -66,32 +75,36 @@ void setupLCD();
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ECNC Page Handling
 
+#define MENU_ITEMS_PER_PAGE 7
+
+typedef void (* PageSetupFunc)();
+typedef void (* PageLoopFunc)();
+typedef void (* GetMenuItemFunc)(uint8_t, char*, uint8_t);
+
 enum MenuButton {
 	MENU_BUTTON_NONE = 0,
 	MENU_BUTTON_BACK = 1,
 	MENU_BUTTON_ENTER = 2,
 };
 
-void setupMainPage();
-void loopMainPage();
-bool handleMenuUpDown(
+void handleMenuUpDown(
+	uint8_t &menuPageTopIndex,
 	uint8_t &menuIndex,
-	uint8_t menuItemCount
+	uint8_t menuItemCount,
+	GetMenuItemFunc itemFunc
 );
-MenuButton checkOkBackButtons();
-void setupNewPosPage();
-void loopNewPosPage();
-void setupLoadPosPage();
-void loopLoadPosPage();
-void setupFreeJogPage();
-void loopFreeJogPage();
+void drawMenu(
+	uint8_t menuPageTopIndex,
+	uint8_t menuIndex,
+	uint8_t menuItemCount,
+	GetMenuItemFunc itemFunc
+);
+MenuButton checkOkBackButtons(bool requireTap);
 
-enum ECncPage {
-	ECNC_PAGE_MAIN = 0,
-	ECNC_PAGE_NEW_POS = 1,
-	ECNC_PAGE_LOAD_POS = 2,
-	ECNC_PAGE_FREE_JOG = 3,
-};
+
+void setupErrorPage(const char* error);
+void setupSavePosPage(PageSetupFunc snp);
+
 
 
 #endif

@@ -2,7 +2,7 @@
 // Created by yona on 11/5/16.
 //
 
-#include "ECNC.h"
+#include "HumanInterface.h"
 #include "MachineComm.h"
 
 #define DEFAULT_SERIAL_TIMEOUT (1000)
@@ -33,6 +33,10 @@ const unsigned long movementStepMs = 250;
 unsigned long lastPosCheckMs = 0;
 
 const unsigned long posCheckIntervalMs = 50;
+
+Vector3 getCurrentJogTarget() {
+	return desiredMachinePos;
+}
 
 void syncMachineMotion() {
 	// Precompute for speed
@@ -76,6 +80,8 @@ void syncMachineMotion() {
 
 void startJogControl() {
 	if (!jogControlEnabled) {
+		Serial.println("Starting jog control...");
+
 		jogControlEnabled = true;
 		gotInitialPosition = false;
 
@@ -90,13 +96,13 @@ void loopJogControl() {
 	if (jogControlEnabled) {
 		if (gotInitialPosition) {
 			if (millis() - lastPosCheckMs > posCheckIntervalMs) {
-				if (readMachineActualPos(&lastReadMachinePos)) {
+				if (readCurrentWorkspacePos(&lastReadMachinePos)) {
 					lastPosCheckMs = millis();
 					syncMachineMotion();
 				}
 			}
 		} else {
-			if (readMachineActualPos(&lastReadMachinePos)) {
+			if (readCurrentWorkspacePos(&lastReadMachinePos)) {
 				Serial.println("Got initial position");
 				gotInitialPosition = true;
 				desiredMachinePos = lastReadMachinePos;
@@ -110,13 +116,22 @@ void loopJogControl() {
 	}
 }
 
-void stopJogControl() {
+void stopJogControlAndRound() {
 	jogControlEnabled = false;
 
 	machineState.positionRequested = false;
 	machineState.positionReceived = false;
 	machineState.positionError = false;
 	machineState.joggingError = false;
+
+	// Move the head to a rounded-mm position
+	Vector3 pos;
+	readTargetWorkspacePos(& pos);
+	pos.roundToMm();
+	moveMachineTo(pos, true, true, false, GCODE_NUM(3000));
+
+	// Wait for any final movement to finish
+	waitForMachineToReachTarget(10000);
 }
 
 /**
@@ -153,10 +168,29 @@ int32_t readNextPos0_01mm(
 }
 
 bool homeMachine() {
+	// First remove any offsets so we get homed coordinates
+	if (! sendAndAwaitOk("G92.1", DEFAULT_SERIAL_TIMEOUT)) return false;
+
+	// Do the actual homing
 	return sendAndAwaitOk("G28.2", 60000);
 }
 
-bool readMachineActualPos(Vector3 *pos) {
+bool readTargetWorkspacePos(Vector3 *pos) {
+	clearSerialInputBuffer();
+
+	if (sendAndAwait("M114", "ok C: ", DEFAULT_SERIAL_TIMEOUT)) {
+		char* c = lastMachineResponse;
+		pos->x = readNextPos0_01mm(c);
+		pos->y = readNextPos0_01mm(c);
+		pos->z = readNextPos0_01mm(c);
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool readCurrentWorkspacePos(Vector3 *pos) {
 	clearSerialInputBuffer();
 
 	// Expected Response
@@ -173,10 +207,10 @@ bool readMachineActualPos(Vector3 *pos) {
 	}
 }
 
-bool readMachineTargetPos(Vector3 * pos) {
+bool readTargetMachinePos(Vector3 *pos) {
 	clearSerialInputBuffer();
 
-	if (sendAndAwait("M114", "ok C: ", DEFAULT_SERIAL_TIMEOUT)) {
+	if (sendAndAwait("M114.5", "ok LMP: ", DEFAULT_SERIAL_TIMEOUT)) {
 		char* c = lastMachineResponse;
 		pos->x = readNextPos0_01mm(c);
 		pos->y = readNextPos0_01mm(c);
@@ -186,6 +220,45 @@ bool readMachineTargetPos(Vector3 * pos) {
 	} else {
 		return false;
 	}
+}
+
+bool readCurrentMachinePos(Vector3 *pos) {
+	clearSerialInputBuffer();
+
+	// Expected Response
+	// ok WPOS: X:400.0000 Y:400.0000 Z:0.0000
+	if (sendAndAwait("M114.2", "ok MPOS:", DEFAULT_SERIAL_TIMEOUT)) {
+		char* c = lastMachineResponse;
+		pos->x = readNextPos0_01mm(c);
+		pos->y = readNextPos0_01mm(c);
+		pos->z = readNextPos0_01mm(c);
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+bool waitForMachineToReachTarget(uint32_t timeoutMs) {
+	long timeoutAtMs = millis() + timeoutMs;
+	Vector3 target, actual;
+
+	while (millis() < timeoutAtMs) {
+		if (!readCurrentWorkspacePos(&actual) || !readTargetWorkspacePos(&target)) {
+			Serial.println("ERROR: Failed to get machine position while waiting for it to reach it's target");
+		}
+
+		if (target == actual) {
+			// TODO: The machine could still be moving, so this isn't perfect, but it will work for most of our needs
+			return true;
+		}
+		delay(500);
+	}
+
+	Serial.print("ERROR: Machine failed to arrive at target within ");
+	Serial.print(timeoutMs);
+	Serial.println("ms");
 }
 
 int machineZProbe(
@@ -219,16 +292,46 @@ int machineZProbe(
 	}
 }
 
-bool setMachineZero(int32_t zOffset01mm) {
-	sendStr("G92 X0 Y0 Z");
+bool setMachineCurrentZAsZero(int32_t zOffset01mm) {
+	sendStr("G92 Z");
 	sendFixed(zOffset01mm);
 	sendLine();
 	return awaitOkResponse("G92", DEFAULT_SERIAL_TIMEOUT);
 }
 
-bool moveMachineTo(Vector3 vec, int32_t speed01MmPerMin) {
+bool setMachineZeroTo(Vector3 zero) {
+	if (!clearWorkspaceOffsets()) return false;
+
+	Vector3 curPos;
+	if (!readTargetWorkspacePos(&curPos)) return false;
+
+	Vector3 offset = curPos - zero;
+
+	sendStr("G92");
+	sendXYZ(offset);
+	sendLine();
+	return awaitOkResponse("G92", DEFAULT_SERIAL_TIMEOUT);
+}
+
+bool clearWorkspaceOffsets() {
+	return sendAndAwaitOk("G92.1", DEFAULT_SERIAL_TIMEOUT);
+}
+
+bool moveMachineTo(Vector3 vec, bool x, bool y, bool z, int32_t speed01MmPerMin) {
 	sendStr("G0 ");
-	sendXYZ(vec);
+	if (x) {
+		sendStr("X");
+		sendFixed(vec.x);
+	}
+	if (y) {
+		sendStr("Y");
+		sendFixed(vec.y);
+	}
+	if (z) {
+		sendStr("Z");
+		sendFixed(vec.z);
+	}
+
 	if (speed01MmPerMin > 0) {
 		sendStr(" F");
 		sendFixed(speed01MmPerMin);

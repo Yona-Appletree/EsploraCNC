@@ -98,18 +98,20 @@
       <sourceFolder url="file://$USER_HOME$/Library/Caches/CLion12/cmake/generated/2b4d1832/2b4d1832/Release/ExploraCNC_EsploraCNC.ino.cpp" isTestSource="false" />
     </content>
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/ECNCGCode.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/HumanInterface.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/MachineComm.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/ECNCGCode.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/Vector3.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/ECNC.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/Vector3.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/MachineComm.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/ECNC.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/PDQ_ST7735_config.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/cmake/Platform/Arduino.cmake" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/cmake/ArduinoToolchain.cmake" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Persistence.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Vector3.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Persistence.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Vector3.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/HumanInterface.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/MachineControl.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/PDQ_ST7735_config.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/MachineControl.cpp" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">
